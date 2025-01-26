@@ -3,6 +3,9 @@ from flask_restful import Resource
 from app.database import firebase_db
 from datetime import datetime
 
+
+
+
 class StockAPI(Resource):
     def get(self):
         """
