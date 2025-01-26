@@ -1,0 +1,5 @@
+Command to get all candles for a specific Currency in a specific timeframe:
+curl "http://127.0.0.1:5000/stocks?crypto=BTC&timeframe=daily" 
+
+Command to get all candles in a date range for a specific Currency in a specific timeframe:
+curl "http://127.0.0.1:5000/stocks?crypto=BTC&timeframe=daily&start_date=2023-12-01&end_date=2023-12-10"

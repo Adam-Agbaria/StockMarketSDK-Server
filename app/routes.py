@@ -1,52 +1,49 @@
 from flask import request, jsonify
 from flask_restful import Resource
 from app.database import firebase_db
+from datetime import datetime
 
 class StockAPI(Resource):
     def get(self):
         """
-        Handle GET requests to retrieve stock data.
+        Handle GET requests to retrieve cryptocurrency data.
         Query parameters:
-        - symbol: Filter by stock symbol (optional)
-        - date: Filter by stock date (optional)
+        - crypto: Cryptocurrency symbol (e.g., BTC, ETH, BNB) (required).
+        - timeframe: Timeframe for data (daily, weekly, monthly) (required).
+        - start_date: Start date for range (optional, format YYYY-MM-DD).
+        - end_date: End date for range (optional, format YYYY-MM-DD).
         """
-        symbol = request.args.get("symbol")
-        date = request.args.get("date")
+        # Get query parameters
+        crypto = request.args.get("crypto")
+        timeframe = request.args.get("timeframe")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
 
-        # Fetch all stock data
-        stocks = firebase_db.child("stocks").get()
+        # Validate required parameters
+        if not crypto or not timeframe:
+            return {"error": "Both 'crypto' and 'timeframe' parameters are required."}, 400
 
-        if not stocks:
-            return jsonify([])
+        # Reference the database node for the specified cryptocurrency and timeframe
+        data_ref = firebase_db.child("cryptocurrencies").child(crypto).child(timeframe)
+        data = data_ref.get()
 
-        # Filter stocks based on query parameters
-        results = [
-            stock for stock in stocks.values()
-            if (not symbol or stock.get("symbol") == symbol) and
-               (not date or stock.get("date") == date)
-        ]
+        if not data:
+            return {"error": f"No data found for {crypto} in {timeframe} timeframe."}, 404
 
-        return jsonify(results)
-    
-    def post(self):
-        """
-        Handle POST requests to add stock data.
-        Payload example:
-        {
-            "symbol": "AAPL",
-            "date": "2023-12-31",
-            "open_price": 150,
-            "high": 155,
-            "low": 149,
-            "close": 154
-        }
-        """
-        data = request.json
+        # Filter data by date range
+        filtered_data = {}
+        if start_date or end_date:
+            for date, values in data.items():
+                if start_date and date < start_date:
+                    continue
+                if end_date and date > end_date:
+                    continue
+                filtered_data[date] = values
+        else:
+            filtered_data = data
 
-        # Push the stock data into the database
-        firebase_db.child("stocks").push(data)
-        return {"message": "Stock data added successfully!"}, 201
+        return jsonify(filtered_data)
+
 
 def initialize_routes(api):
-    # Register the StockAPI resource
     api.add_resource(StockAPI, '/stocks')
